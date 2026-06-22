@@ -40,6 +40,6 @@ Portafolio real de **automatizaciones** e **inteligencia artificial** enfocadas 
 ---
 
 **¿Buscas automatizar tu negocio?**  
-Escríbeme por WhatsApp: **+5932339151**
+Escríbeme por WhatsApp: **+593983725484**
 
 Abierto a proyectos freelance y colaboraciones.
