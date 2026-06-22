@@ -1,0 +1,3271 @@
+{
+  "name": "CDI Nikola Tesla - Flujo Completo (Fixed)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cdi-nikola-tesla",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -896,
+        96
+      ],
+      "id": "8647bc8b-1d57-4163-81d0-d97861123198",
+      "name": "Webhook WhatsApp",
+      "webhookId": "cdi-nikola-tesla"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/estado",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "remitente",
+              "value": "={{ $json.body.remitente }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -688,
+        96
+      ],
+      "id": "ed1c4bcc-3a2f-4f5e-a22e-bddf77292cb7",
+      "name": "Mostrar escribiendo",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const remitente = $('Webhook WhatsApp').item.json.body.remitente;\nconst mensaje = $('Webhook WhatsApp').item.json.body.mensaje;\nconst esComprobante = $('Webhook WhatsApp').item.json.body.esComprobante || false;\n\nconst staticData = $getWorkflowStaticData('global');\n\nif (!staticData.contactosVistos) {\n  staticData.contactosVistos = {};\n}\n\nconst yaVisto = staticData.contactosVistos[remitente] === true;\n\nif (!yaVisto) {\n  staticData.contactosVistos[remitente] = true;\n}\n\nreturn [{\n  json: {\n    remitente,\n    mensaje,\n    esComprobante,\n    esPrimerMensaje: !yaVisto,\n    esSegundoMensaje: yaVisto\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        96
+      ],
+      "id": "17964150-a930-46d1-8392-42da59007cf2",
+      "name": "Clasificar mensaje"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.esComprobante }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              },
+              "id": "condition-es-comprobante"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -240,
+        96
+      ],
+      "id": "f63659d0-59dc-44b8-97ee-8e01d002499f",
+      "name": "¿Viene un Comprobante?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/enviar-imagen",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "remitente",
+              "value": "={{ $('Clasificar mensaje').item.json.remitente }}"
+            },
+            {
+              "name": "url",
+              "value": "https://i.postimg.cc/QtBWbpZf/Chat-GPT-Image-16-jun-2026-08-50-18.png"
+            },
+            {
+              "name": "caption",
+              "value": "*'Exploradores de los Reinos Mágicos y los 4 Elementos'*\n\n¡Una aventura inolvidable para tu pequeño!"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        0,
+        224
+      ],
+      "id": "c99ba48e-32c6-4a1b-8df5-b8e57284f45a",
+      "name": "Enviar flyer"
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        224
+      ],
+      "id": "83e20c4f-3a84-44e7-86d0-267565c77da2",
+      "name": "Esperar 3s",
+      "webhookId": "763d90cb-6a52-4973-9987-b4cd6680873d"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook WhatsApp').item.json.body.mensaje }}",
+        "options": {
+          "systemMessage": "IDENTIDAD\nEres \"Sofi\", asesora amable y cercana del curso vacacional \n\"Exploradores de los Reinos Mágicos y los 5 Elementos\" de Escuela \nTesla. Tu único objetivo es que el padre o madre reserve un cupo \npara su hijo/a. Hablas como una persona real, nunca como un robot.\n\nINFORMACIÓN DEL CURSO (solo usa cuando te pregunten)\n- Nombre: Exploradores de los Reinos Mágicos y los 5 Elementos\n- Edad: niños y niñas de 3 a 12 años\n- Inicio: 29 de junio\n- Duración: 5 semanas\n- Horario: 8:00 am a 12:00 pm\n- Precio normal: $70\n- Precio con descuento: $60 (reservando con $5)\n- Materiales: incluidos, no necesitan traer nada\n- Transporte: no disponible, excepto en excursiones\n- Ubicación: Durán Cárdenas, calle secundaria Mesías Carrera \n  (Redondel Huachi el Progreso)\n\nFLUJO DE CONVERSACIÓN\nSigue este orden natural:\n1. Saluda con calidez y pregunta la edad del niño/a\n2. Confirma que aplica para esa edad\n3. Responde SOLO lo que el padre pregunte, nada más\n4. Cuando notes interés, guíalo a reservar su cupo con $5\n\nREGLAS DE COMUNICACIÓN (OBLIGATORIAS)\n- Máximo 2 o 3 líneas por mensaje\n- Nunca envíes toda la información de una sola vez\n- Responde únicamente lo que te pregunten\n- No repitas información ya entregada\n- Usa frases cortas y naturales\n- Sin listas largas, salvo que estén listos para inscribirse\n- No expliques de más\n\nSOLO INFORMA ESTO SI TE LO PREGUNTAN\n- Temáticas o actividades del curso\n- Paseos o salidas\n- Actividades especiales\n- Descuentos\n- Ubicación\n- Horarios\n\nMANEJO DE OBJECIONES\nSi dicen \"está caro\":\n\"Entiendo 😊 Por eso la reserva es solo $5 para asegurar \nel cupo mientras decide.\"\n\nSi dicen \"voy a pensarlo\":\n\"Claro, los cupos son limitados por grupo de edad. \n¿Le aparto uno mientras lo piensa?\"\n\nSi dicen \"no tengo tiempo\":\n\"No hay problema 😊 El horario es de 8 a 12, así tiene \nla tarde libre con su hijo/a.\"\n\nCIERRE HACIA RESERVA\nCuando el padre muestre interés usa:\n\"Con gusto 😊 ¿Me indica el nombre del representante \ny del niño/a para iniciar la reserva?\"\n\nESCALAMIENTO A HUMANO\nSi piden hablar con encargado, coordinador o asesor:\n\"Claro 😊, un encargado puede ayudarle. Déjeme su nombre \ny número de contacto para que se comuniquen con usted.\"\n\nSi insiste:\n\"Un asesor humano le contactará lo antes posible.\"\n\nEJEMPLOS DE RESPUESTAS CORRECTAS\nPrecio → \"El curso tiene un valor de $70. Reservando hoy \ncon $5 accede al precio especial de $60 😊\"\n\nHorario → \"Las clases son de 8:00 am a 12:00 pm.\"\n\nUbicación → \"Durán Cárdenas, calle secundaria Mesías Carrera. \n(Redondel Huachi el Progreso).\"\n\nEdades → \"Está dirigido a niños y niñas de 3 a 12 años.\"\n\nMateriales → \"No necesitan traer nada, nosotros los \nproporcionamos.\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        448,
+        224
+      ],
+      "id": "babbe66c-27f3-4bcc-af67-d911e623bc1b",
+      "name": "AI Agent Principal",
+      "retryOnFail": true,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "modelName": "models/deep-research-pro-preview-12-2025",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        560
+      ],
+      "id": "436377f4-ca22-4c09-97d3-124fce9fbe79",
+      "name": "Gemini Principal",
+      "notesInFlow": false,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "0MgJCfSJK7ktYcyk",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook WhatsApp').item.json.body.remitente }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        544,
+        384
+      ],
+      "id": "bf98c6a3-a453-4525-b7e5-b296987e6613",
+      "name": "Memoria por usuario"
+    },
+    {
+      "parameters": {
+        "jsCode": "const respuesta = $('AI Agent Principal').item.json.output;\nconst esPago = respuesta.includes('PAGO_CONFIRMADO');\n\nlet datosInscrito = null;\nif (esPago) {\n  const match = respuesta.match(/PAGO_CONFIRMADO:\\s*([^|]+)\\|([^|]+)\\|([^|]+)\\|([^\\n]+)/);\n  if (match) {\n    datosInscrito = {\n      nombreNino: match[1].trim(),\n      nombreRepresentante: match[2].trim(),\n      edad: match[3].trim(),\n      telefono: match[4].trim()\n    };\n  }\n}\n\nreturn [{ json: { respuesta, esPago, datosInscrito, remitente: $('Webhook WhatsApp').item.json.body.remitente } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        224
+      ],
+      "id": "e56d5447-6566-423d-98f8-c124d61f5ecc",
+      "name": "Detectar pago confirmado"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.esPago }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              },
+              "id": "8e5b9fbc-38ce-45ad-8ed8-88f33ad050e5"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        912,
+        224
+      ],
+      "id": "ad2073dc-9c56-490c-9f70-6eef6194f1ce",
+      "name": "Hubo pago?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/enviar-mensaje",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "mensaje",
+              "value": "={{ $('Detectar pago confirmado').item.json.respuesta.replace('PAGO_CONFIRMADO:' + $('Detectar pago confirmado').item.json.respuesta.match(/PAGO_CONFIRMADO:[^\\n]*/)?.[0]?.replace('PAGO_CONFIRMADO:', ''), '').trim() }}"
+            },
+            {
+              "name": "remitente",
+              "value": "={{ $('Webhook WhatsApp').item.json.body.remitente }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1120,
+        224
+      ],
+      "id": "cf5e4cbd-d92b-41b6-b7b1-26617daf17d7",
+      "name": "Enviar respuesta normal"
+    },
+    {
+      "parameters": {
+        "jsCode": "const remitente = $('Clasificar mensaje').item.json.remitente;\nconst mensajeOriginal = $('Webhook WhatsApp').item.json.body.mensaje || \"\";\nconst fecha = new Date().toLocaleDateString('es-EC', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });\n\n// 🕵️‍♂️ Intento de extracción rápida de nombres si la mamá los escribió junto al comprobante\nlet nombreNino = 'Por verificar en chat';\nlet nombreRepresentante = 'Por verificar en chat';\n\n// Si el mensaje tiene texto largo, intentamos buscar palabras clave\nconst texto = mensajeOriginal.toLowerCase();\nif (texto.includes('de ') || texto.includes('para ')) {\n  // Un intento básico de rescate de info para no dejarlo vacío si viene texto adjunto\n  nombreNino = mensajeOriginal; \n}\n\nconst contenido = `===== COMPROBANTE RECIBIDO (PRE-VALIDADO) =====\\nFecha: ${fecha}\\nWhatsApp remitente: ${remitente}\\nTexto adjunto: ${mensajeOriginal}\\n==============================================\\n\\n`;\n\nreturn [{ \n  json: { \n    contenido, \n    nombreArchivo: `comprobante_${Date.now()}.txt`, \n    datosInscrito: { \n      nombreNino: nombreNino, \n      nombreRepresentante: nombreRepresentante, \n      edad: 'Por verificar', \n      telefono: remitente \n    } \n  } \n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -64
+      ],
+      "id": "7a65a7e8-e183-49ab-a97d-f5f97c24fb9a",
+      "name": "Procesar Comprobante Directo"
+    },
+    {
+      "parameters": {
+        "chatId": "6980452640",
+        "text": "=const remitenteRaw = $('Webhook WhatsApp').item.json.body.remitente || \"\";\nconst mensaje = $('Webhook WhatsApp').item.json.body.mensaje || \"\";\nconst esComprobante = $('Webhook WhatsApp').item.json.body.esComprobante || false;\n\n// 🔥 LIMPIEZA DE TELÉFONO: Extrae solo los números antes del @ o el lid\nconst remitente = remitenteRaw.split('@')[0].split(':')[0];\n\nconst staticData = $getWorkflowStaticData('global');\n\nif (!staticData.contactosVistos) {\n  staticData.contactosVistos = {};\n}\n\nconst yaVisto = staticData.contactosVistos[remitente] === true;\n\nif (!yaVisto) {\n  staticData.contactosVistos[remitente] = true;\n}\n\nreturn [{\n  json: {\n    remitente,\n    mensaje,\n    esComprobante,\n    esPrimerMensaje: !yaVisto,\n    esSegundoMensaje: yaVisto\n  }\n}];",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1408,
+        48
+      ],
+      "id": "97f22209-5d02-4093-bef4-495ecfa22ceb",
+      "name": "Alertar por Telegram",
+      "webhookId": "20b09d6e-0665-40d5-bdf7-20440b1514a6",
+      "credentials": {
+        "telegramApi": {
+          "id": "1wcgGKd0BQrcBd92",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const datos = $('Detectar pago confirmado').item.json.datosInscrito;\nconst remitente = $('Detectar pago confirmado').item.json.remitente;\nconst fecha = new Date().toLocaleDateString('es-EC', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });\n\nconst contenido = `===== INSCRIPCIÓN CDI NIKOLA TESLA =====\\nFecha: ${fecha}\\nNiño/a: ${datos?.nombreNino || 'N/D'}\\nRepresentante: ${datos?.nombreRepresentante || 'N/D'}\\nEdad: ${datos?.edad || 'N/D'}\\nTeléfono: ${datos?.telefono || 'N/D'}\\nWhatsApp remitente: ${remitente}\\nEstado: Cupo separado ($5 pagado)\\nDescuento aplicado: $15 en pago final\\n========================================\\n\\n`;\n\nreturn [{ json: { contenido, nombreArchivo: `inscrito_${Date.now()}.txt` } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        368
+      ],
+      "id": "46e7f774-dff2-49f2-b150-4ea8fdb1c526",
+      "name": "Preparar datos TXT"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/guardar-inscrito",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "contenido",
+              "value": "={{ $json.contenido }}"
+            },
+            {
+              "name": "nombreArchivo",
+              "value": "={{ $json.nombreArchivo }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1408,
+        368
+      ],
+      "id": "45cf3742-cbb2-401c-a215-017eddd2b328",
+      "name": "Guardar en TXT"
+    },
+    {
+      "parameters": {
+        "jsCode": "const remitente = $('Webhook WhatsApp').item.json.body.remitente;\nconst fecha = new Date().toISOString();\n\nconst leadsExistentes = $getWorkflowStaticData('global').leads || {};\n\nif (!leadsExistentes[remitente]) {\n  leadsExistentes[remitente] = {\n    remitente,\n    fechaPrimerContacto: fecha,\n    diasRemarketing: 0,\n    ultimoRemarketing: null\n  };\n  $getWorkflowStaticData('global').leads = leadsExistentes;\n}\n\nreturn [{ json: { guardado: true, remitente } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        496
+      ],
+      "id": "7bceb25e-0ec7-46b6-9239-8f2046baef3f",
+      "name": "Guardar lead frio"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/enviar-mensaje",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "mensaje",
+              "value": "¡Comprobante recibido! ✨ He registrado tu pago con éxito. En breve un asesor humano validará los datos de inscripción para darles la bienvenida formal al curso vacacional. ¡Muchas gracias por tu confianza! ❤️"
+            },
+            {
+              "name": "remitente",
+              "value": "={{ $('Webhook WhatsApp').item.json.body.remitente }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        -64
+      ],
+      "id": "2454acf9-3147-4792-8861-795e07fb57eb",
+      "name": "Enviar mensaje éxito directo"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Mostrar escribiendo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mostrar escribiendo": {
+      "main": [
+        [
+          {
+            "node": "Clasificar mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clasificar mensaje": {
+      "main": [
+        [
+          {
+            "node": "¿Viene un Comprobante?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Viene un Comprobante?": {
+      "main": [
+        [
+          {
+            "node": "Procesar Comprobante Directo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enviar flyer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar flyer": {
+      "main": [
+        [
+          {
+            "node": "Esperar 3s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Esperar 3s": {
+      "main": [
+        [
+          {
+            "node": "AI Agent Principal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent Principal": {
+      "main": [
+        [
+          {
+            "node": "Detectar pago confirmado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Principal": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent Principal",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memoria por usuario": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent Principal",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detectar pago confirmado": {
+      "main": [
+        [
+          {
+            "node": "Hubo pago?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hubo pago?": {
+      "main": [
+        [
+          {
+            "node": "Alertar por Telegram",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Preparar datos TXT",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enviar respuesta normal",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Guardar lead frio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Procesar Comprobante Directo": {
+      "main": [
+        [
+          {
+            "node": "Guardar en TXT",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Enviar mensaje éxito directo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar mensaje éxito directo": {
+      "main": [
+        [
+          {
+            "node": "Alertar por Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar datos TXT": {
+      "main": [
+        [
+          {
+            "node": "Guardar en TXT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "0d978226-9ff0-4e6f-a8df-30813edc5298",
+  "meta": {
+    "instanceId": "85d941f6ef4e9835e69295da53541d503e157caad80ea4aa4a15b33f5b35b04e"
+  },
+  "id": "jbr8hZ92sVZwmmVe",
+  "tags": []
+}
+{
+  "name": "CDI - Publicar en Facebook desde Telegram v5",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -5856,
+        -128
+      ],
+      "id": "d1b7df88-8c69-464e-9343-bbdd312fe64d",
+      "name": "Telegram Trigger",
+      "webhookId": "cdi-fb-telegram-v5",
+      "credentials": {
+        "telegramApi": {
+          "id": "Hh7ejV9UwxRWpPkL",
+          "name": "Telegram account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const msg = $input.item.json.message;\nconst chatId = msg?.chat?.id;\nconst caption = msg?.caption || \"\";\nconst foto = msg?.photo;\nconst video = msg?.video;\nconst doc = msg?.document;\nlet tipo = null, fileId = null;\n\nif (foto) {\n  tipo = \"foto\";\n  fileId = foto[foto.length - 1].file_id;\n} else if (video) {\n  tipo = \"video\";\n  fileId = video.file_id;\n} else if (doc?.mime_type?.startsWith(\"video\")) {\n  tipo = \"video\";\n  fileId = doc.file_id;\n} else if (doc?.mime_type?.startsWith(\"image\")) {\n  tipo = \"foto\";\n  fileId = doc.file_id;\n}\n\nif (!tipo) {\n  return [{ json: { valido: false, chatId } }];\n}\nreturn [{ json: { valido: true, tipo, fileId, caption, chatId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -5632,
+        -128
+      ],
+      "id": "9ca3a95d-3234-474c-b4db-f439f3e66472",
+      "name": "Validar y clasificar"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.valido }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              },
+              "id": "c01"
+            }
+          ],
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -5424,
+        -128
+      ],
+      "id": "042bd0df-f340-4f7d-9a8b-83e404d03f27",
+      "name": "Es foto o video?"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "Solo acepto fotos o videos. Envia el contenido que quieres publicar en Facebook.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -5424,
+        96
+      ],
+      "id": "422865d9-199f-4706-9871-25d2ab76b235",
+      "name": "Avisar error formato",
+      "webhookId": "96bed1c3-5e79-42ff-a913-7e617d017140",
+      "credentials": {
+        "telegramApi": {
+          "id": "Hh7ejV9UwxRWpPkL",
+          "name": "Telegram account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.telegram.org/bot8846061173:AAFX69efhxXYiOep-0gTXqOtMFd9SOl3pb0/getFile?file_id={{ $json.fileId }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -5200,
+        -128
+      ],
+      "id": "0165c66a-4ad4-42da-b61c-4bf6630f4d42",
+      "name": "Obtener ruta archivo"
+    },
+    {
+      "parameters": {
+        "jsCode": "const filePath = $input.item.json.result.file_path;\nconst tipo = $(\"Validar y clasificar\").item.json.tipo;\nconst caption = $(\"Validar y clasificar\").item.json.caption;\nconst chatId = $(\"Validar y clasificar\").item.json.chatId;\nconst fileUrl = \"https://api.telegram.org/file/bot8846061173:AAFX69efhxXYiOep-0gTXqOtMFd9SOl3pb0/\" + filePath;\nreturn [{ json: { filePath, fileUrl, tipo, caption, chatId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4976,
+        -128
+      ],
+      "id": "dc53352a-c9d7-490f-8d55-85c6236103f5",
+      "name": "Preparar datos"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ (() => {\n  const caption = $(\"Validar y clasificar\").item.json.caption;\n  const tipo = $(\"Validar y clasificar\").item.json.tipo;\n  const ctx = caption\n    ? \"El contenido trata sobre: \" + caption\n    : \"Es un \" + tipo + \" de actividades del Centro de Desarrollo Infantil Nikola Tesla con ninos.\";\n  return \"Eres community manager del CDI Nikola Tesla en Ecuador.\\nGenera un copy para Facebook basado en: \" + ctx + \"\\n\\nREGLAS:\\n- Maximo 3 lineas\\n- Tono calido y familiar\\n- 2-3 emojis relevantes\\n- Llamado a accion suave al final\\n- Maximo 3 hashtags\\n- Solo en espanol\\n\\nResponde SOLO con el texto del copy, sin explicaciones ni comillas.\";\n})() }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        -4752,
+        -128
+      ],
+      "id": "13594f43-da11-4158-bb9c-c8fd4de11618",
+      "name": "Generar copy"
+    },
+    {
+      "parameters": {
+        "model": "llama3:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmOllama",
+      "typeVersion": 1,
+      "position": [
+        -4752,
+        80
+      ],
+      "id": "731a365f-3634-44ce-b131-533af4ecd29e",
+      "name": "Ollama Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "selITjfMVMwaIbw0",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const copy = $(\"Generar copy\").item.json.text || \"Momento especial en el CDI Nikola Tesla. Cada dia es una aventura llena de aprendizaje y amor! ❤️ #CDINikolaTesla\";\nconst tipo = $(\"Preparar datos\").item.json.tipo;\nconst chatId = $(\"Preparar datos\").item.json.chatId;\nconst fileUrl = $(\"Preparar datos\").item.json.fileUrl;\nconst filePath = $(\"Preparar datos\").item.json.filePath;\nreturn [{ json: { copy, tipo, chatId, fileUrl, filePath, esFoto: tipo === \"foto\" } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4544,
+        -128
+      ],
+      "id": "4a21930d-0a56-4b79-9831-cab5875b37b0",
+      "name": "Combinar copy y datos"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.esFoto }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              },
+              "id": "c02"
+            }
+          ],
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -4320,
+        -128
+      ],
+      "id": "de6fafde-5dbd-45f6-b042-b304f639621f",
+      "name": "Foto o Video?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v19.0/100542675060022/photos",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $json.fileUrl }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.copy }}"
+            },
+            {
+              "name": "access_token",
+              "value": "EAAcxuXGXWpoBRh7fDuXnOWygkZA8tcTuZCHDgWMekj5XEZCbzeI2HxwjhBG1sK6oJ0WZBzZBPhEnrTZB9ZBmVEoHGyOZAZCmSEJTWtZCg9xcoA8hWY6pdUoY8sMIAXjHJZC6trZAwXcv2xvDMmbg9akZB7TqQ8UAiFjLb2vnwonnIoMjbe8Q8xjiUXdVI9FLr3O4cGlDNYUMN1NU7aBw1dZBUqVycZD"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -4096,
+        -272
+      ],
+      "id": "371ca430-5546-4eb5-9861-0c90aa8efb41",
+      "name": "Publicar foto en Facebook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $input.item.json;\nconst chatId = $(\"Combinar copy y datos\").item.json.chatId;\nconst exito = !!(r.id || r.post_id);\nreturn [{ json: { exito, id: r.id || r.post_id || null, error: r.error?.message || null, chatId, tipo: \"foto\" } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3872,
+        -272
+      ],
+      "id": "e89197e8-8894-4b6e-940c-50d0f8fc84b0",
+      "name": "Verificar foto"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.exito }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              },
+              "id": "c03"
+            }
+          ],
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -3664,
+        -272
+      ],
+      "id": "f4117412-ac0a-474b-8b3b-ddaf86a1fc52",
+      "name": "Foto publicada?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v19.0/100542675060022/video_reels",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "access_token",
+              "value": "EAAcxuXGXWpoBRh7fDuXnOWygkZA8tcTuZCHDgWMekj5XEZCbzeI2HxwjhBG1sK6oJ0WZBzZBPhEnrTZB9ZBmVEoHGyOZAZCmSEJTWtZCg9xcoA8hWY6pdUoY8sMIAXjHJZC6trZAwXcv2xvDMmbg9akZB7TqQ8UAiFjLb2vnwonnIoMjbe8Q8xjiUXdVI9FLr3O4cGlDNYUMN1NU7aBw1dZBUqVycZD"
+            },
+            {
+              "name": "upload_phase",
+              "value": "start"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -4096,
+        16
+      ],
+      "id": "72554758-5eab-42f6-984d-504e56a1135b",
+      "name": "Iniciar upload video"
+    },
+    {
+      "parameters": {
+        "jsCode": "const videoId = $input.item.json.video_id;\nconst chatId = $(\"Combinar copy y datos\").item.json.chatId;\nconst copy = $(\"Combinar copy y datos\").item.json.copy;\nconst filePath = $(\"Combinar copy y datos\").item.json.filePath;\nreturn [{ json: { videoId, chatId, copy, filePath } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3872,
+        16
+      ],
+      "id": "6f103f16-0e16-4cfa-8595-3b5ade7c235a",
+      "name": "Guardar video ID"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.telegram.org/file/bot8846061173:AAFX69efhxXYiOep-0gTXqOtMFd9SOl3pb0/{{ $json.filePath }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -3664,
+        16
+      ],
+      "id": "6056f548-6a59-4f37-95b6-f3e16bb88764",
+      "name": "Descargar video binario"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "==https://graph-video.facebook.com/v19.0/{{ $(\"Guardar video ID\").item.json.videoId }}/source",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "OAuth EAAcxuXGXWpoBRh7fDuXnOWygkZA8tcTuZCHDgWMekj5XEZCbzeI2HxwjhBG1sK6oJ0WZBzZBPhEnrTZB9ZBmVEoHGyOZAZCmSEJTWtZCg9xcoA8hWY6pdUoY8sMIAXjHJZC6trZAwXcv2xvDMmbg9akZB7TqQ8UAiFjLb2vnwonnIoMjbe8Q8xjiUXdVI9FLr3O4cGlDNYUMN1NU7aBw1dZBUqVycZD"
+            },
+            {
+              "name": "offset",
+              "value": "0"
+            },
+            {
+              "name": "file_size",
+              "value": "=={{ $json.fileSizeBytes }}"
+            },
+            {
+              "name": "access_token",
+              "value": "EAAcxuXGXWpoBRyBwdhv2J9TgxI34FiNLsEaYlr57TpqTtRs4WnF5VcPx5iPNQbcNc1lgQKhEVSnr52R546QG5fuYYNuLJonBmlZBZCTJmWKOfnoZAg7SQDTO4U1MmO1eR5SuDH5E5LeCfmAUT8Ck0rwJDvLxgQcto4it2G0q7OJHaMhhYLU6s8yXDZBmMdTKI737WkVZCRNXGRPYw3bH7ywu7ZAYbIFeDrgCBf6eRaREAHHfLW4BVG"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -3232,
+        16
+      ],
+      "id": "e90a827f-2566-4918-b06e-a07d2b711dd7",
+      "name": "Subir binario video"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v19.0/100542675060022/video_reels",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "access_token",
+              "value": "EAAcxuXGXWpoBRh7fDuXnOWygkZA8tcTuZCHDgWMekj5XEZCbzeI2HxwjhBG1sK6oJ0WZBzZBPhEnrTZB9ZBmVEoHGyOZAZCmSEJTWtZCg9xcoA8hWY6pdUoY8sMIAXjHJZC6trZAwXcv2xvDMmbg9akZB7TqQ8UAiFjLb2vnwonnIoMjbe8Q8xjiUXdVI9FLr3O4cGlDNYUMN1NU7aBw1dZBUqVycZD"
+            },
+            {
+              "name": "upload_phase",
+              "value": "finish"
+            },
+            {
+              "name": "video_id",
+              "value": "={{ $(\"Guardar video ID\").item.json.videoId }}"
+            },
+            {
+              "name": "description",
+              "value": "=={{ $(\"Guardar video ID\").item.json.copy.replace(/^\"|\"$/g, \"\").trim() }}"
+            },
+            {
+              "name": "published",
+              "value": "true"
+            },
+            {
+              "name": "file_size",
+              "value": "8445952"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -3008,
+        16
+      ],
+      "id": "152b0869-7176-4437-b622-2990c6567327",
+      "name": "Publicar Reel"
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $input.item.json;\nconst chatId = $(\"Guardar video ID\").item.json.chatId;\nconst exito = !!(r.success || r.video_id);\nreturn [{ json: { exito, id: r.video_id || null, error: r.error?.message || null, chatId, tipo: \"video\" } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2784,
+        16
+      ],
+      "id": "ed30f561-3083-47cd-ad74-8760197f7486",
+      "name": "Verificar video"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.exito }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              },
+              "id": "c04"
+            }
+          ],
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -2784,
+        176
+      ],
+      "id": "4a9e77a7-e9a7-4b52-be69-e7a222b46a75",
+      "name": "Video publicado?"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "=Publicado en Facebook exitosamente!\n\nTipo: {{ $json.tipo === \"foto\" ? \"Foto\" : \"Reel\" }}\nID: {{ $json.id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2576,
+        -128
+      ],
+      "id": "bddfe703-45b7-403a-9bf4-dfb4be772431",
+      "name": "Notificar exito",
+      "webhookId": "07fb0629-8d26-434e-bf76-138fdea28ba3",
+      "credentials": {
+        "telegramApi": {
+          "id": "Hh7ejV9UwxRWpPkL",
+          "name": "Telegram account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "=Error al publicar en Facebook.\n\nTipo: {{ $json.tipo }}\nError: {{ $json.error || \"Error desconocido\" }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2576,
+        96
+      ],
+      "id": "ec671958-b85e-4c47-81aa-74366cd5c303",
+      "name": "Notificar error",
+      "webhookId": "78adc3a1-0228-4980-9876-8e59b4802f70",
+      "credentials": {
+        "telegramApi": {
+          "id": "Hh7ejV9UwxRWpPkL",
+          "name": "Telegram account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Obtener el tamaño real del binario en bytes\nconst binaryData = $binary.data;\nconst fileSizeStr = binaryData.fileSize || \"0\";\n\n// Convertir \"8.05 MB\" a bytes exactos\nlet bytes = 0;\nif (fileSizeStr.includes('MB')) {\n  bytes = Math.round(parseFloat(fileSizeStr) * 1024 * 1024);\n} else if (fileSizeStr.includes('KB')) {\n  bytes = Math.round(parseFloat(fileSizeStr) * 1024);\n} else {\n  bytes = parseInt(fileSizeStr);\n}\n\nconst videoId = $(\"Guardar video ID\").item.json.videoId;\nconst chatId = $(\"Guardar video ID\").item.json.chatId;\nconst copy = $(\"Guardar video ID\").item.json.copy;\n\nreturn [{\n  json: { videoId, chatId, copy, fileSizeBytes: bytes },\n  binary: $binary  // re-inyectar binario\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3456,
+        16
+      ],
+      "id": "af359c51-d222-4385-9b7f-f7f4786cd660",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validar y clasificar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar y clasificar": {
+      "main": [
+        [
+          {
+            "node": "Es foto o video?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Es foto o video?": {
+      "main": [
+        [
+          {
+            "node": "Obtener ruta archivo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Avisar error formato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener ruta archivo": {
+      "main": [
+        [
+          {
+            "node": "Preparar datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar datos": {
+      "main": [
+        [
+          {
+            "node": "Generar copy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generar copy",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generar copy": {
+      "main": [
+        [
+          {
+            "node": "Combinar copy y datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combinar copy y datos": {
+      "main": [
+        [
+          {
+            "node": "Foto o Video?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Foto o Video?": {
+      "main": [
+        [
+          {
+            "node": "Publicar foto en Facebook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Iniciar upload video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publicar foto en Facebook": {
+      "main": [
+        [
+          {
+            "node": "Verificar foto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar foto": {
+      "main": [
+        [
+          {
+            "node": "Foto publicada?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Foto publicada?": {
+      "main": [
+        [
+          {
+            "node": "Notificar exito",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notificar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Iniciar upload video": {
+      "main": [
+        [
+          {
+            "node": "Guardar video ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar video ID": {
+      "main": [
+        [
+          {
+            "node": "Descargar video binario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar video binario": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Subir binario video": {
+      "main": [
+        [
+          {
+            "node": "Publicar Reel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publicar Reel": {
+      "main": [
+        [
+          {
+            "node": "Verificar video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar video": {
+      "main": [
+        [
+          {
+            "node": "Video publicado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Video publicado?": {
+      "main": [
+        [
+          {
+            "node": "Notificar exito",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notificar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Subir binario video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "f874f712-7ecd-4f16-b9f8-18c4c3ca009b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "85d941f6ef4e9835e69295da53541d503e157caad80ea4aa4a15b33f5b35b04e"
+  },
+  "id": "5EX0250kybJ0i0F8",
+  "tags": []
+}
+{
+  "name": "CDI Nikola Tesla - Flujo Completo v2",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cdi-nikola-tesla",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -880,
+        -112
+      ],
+      "id": "607b58dd-5592-40c6-bcf0-06a998eb2420",
+      "name": "Webhook WhatsApp",
+      "webhookId": "cdi-nikola-tesla"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/estado",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "remitente",
+              "value": "={{ $json.body.remitente }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -688,
+        160
+      ],
+      "id": "6e1e9b4e-4626-4599-b500-5eeb564a070c",
+      "name": "Mostrar escribiendo",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const remitente = $('Webhook WhatsApp').item.json.body.remitente;\nconst mensaje = $('Webhook WhatsApp').item.json.body.mensaje;\nconst esComprobante = $('Webhook WhatsApp').item.json.body.esComprobante || false;\n\nconst staticData = $getWorkflowStaticData('global');\n\nif (!staticData.contactosVistos) {\n  staticData.contactosVistos = {};\n}\n\nconst yaVisto = staticData.contactosVistos[remitente] === true;\n\nif (!yaVisto) {\n  staticData.contactosVistos[remitente] = true;\n}\n\nreturn [{\n  json: {\n    remitente,\n    mensaje,\n    esComprobante,\n    esPrimerMensaje: !yaVisto,\n    esSegundoMensaje: yaVisto\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        160
+      ],
+      "id": "44fb17da-3588-433b-8c4a-9cb8bbaffc45",
+      "name": "Clasificar mensaje"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.esComprobante }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              },
+              "id": "condition-es-comprobante"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -240,
+        160
+      ],
+      "id": "76f419f4-7d77-4640-a830-d4f1722f8bbe",
+      "name": "¿Viene un Comprobante?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/enviar-imagen",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "remitente",
+              "value": "={{ $('Clasificar mensaje').item.json.remitente }}"
+            },
+            {
+              "name": "url",
+              "value": "https://i.postimg.cc/QtBWbpZf/Chat-GPT-Image-16-jun-2026-08-50-18.png"
+            },
+            {
+              "name": "caption",
+              "value": "*'Exploradores de los Reinos Mágicos y los 4 Elementos'*\n\n¡Una aventura inolvidable para tu pequeño!"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        0,
+        288
+      ],
+      "id": "244660c0-80bc-4244-84b9-d50ce96836bc",
+      "name": "Enviar flyer"
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        288
+      ],
+      "id": "63027322-3b21-4f6b-9e67-c1251317a440",
+      "name": "Esperar 3s",
+      "webhookId": "763d90cb-6a52-4973-9987-b4cd6680873d"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook WhatsApp').item.json.body.mensaje }}",
+        "options": {
+          "systemMessage": "IDENTIDAD\nEres \"Sofi\", asesora amable y cercana del curso vacacional \n\"Exploradores de los Reinos Mágicos y los 5 Elementos\" de Escuela \nTesla. Tu único objetivo es que el padre o madre reserve un cupo \npara su hijo/a. Hablas como una persona real, nunca como un robot.\n\nINFORMACIÓN DEL CURSO (solo usa cuando te pregunten)\n- Nombre: Exploradores de los Reinos Mágicos y los 5 Elementos\n- Edad: niños y niñas de 3 a 12 años\n- Inicio: 29 de junio\n- Duración: 5 semanas\n- Horario: 8:00 am a 12:00 pm\n- Precio normal: $70\n- Precio con descuento: $60 (reservando con $5)\n- Materiales: incluidos, no necesitan traer nada\n- Transporte: no disponible, excepto en excursiones\n- Ubicación: Durán Cárdenas, calle secundaria Mesías Carrera \n  (Redondel Huachi el Progreso)\n\nFLUJO DE CONVERSACIÓN\nSigue este orden natural:\n1. Saluda con calidez y pregunta la edad del niño/a\n2. Confirma que aplica para esa edad\n3. Responde SOLO lo que el padre pregunte, nada más\n4. Cuando notes interés, guíalo a reservar su cupo con $5\n\nREGLAS DE COMUNICACIÓN (OBLIGATORIAS)\n- Máximo 2 o 3 líneas por mensaje\n- Nunca envíes toda la información de una sola vez\n- Responde únicamente lo que te pregunten\n- No repitas información ya entregada\n- Usa frases cortas y naturales\n- Sin listas largas, salvo que estén listos para inscribirse\n- No expliques de más\n\nSOLO INFORMA ESTO SI TE LO PREGUNTAN\n- Temáticas o actividades del curso\n- Paseos o salidas\n- Actividades especiales\n- Descuentos\n- Ubicación\n- Horarios\n\nMANEJO DE OBJECIONES\nSi dicen \"está caro\":\n\"Entiendo 😊 Por eso la reserva es solo $5 para asegurar \nel cupo mientras decide.\"\n\nSi dicen \"voy a pensarlo\":\n\"Claro, los cupos son limitados por grupo de edad. \n¿Le aparto uno mientras lo piensa?\"\n\nSi dicen \"no tengo tiempo\":\n\"No hay problema 😊 El horario es de 8 a 12, así tiene \nla tarde libre con su hijo/a.\"\n\nCIERRE HACIA RESERVA\nCuando el padre muestre interés usa:\n\"Con gusto 😊 ¿Me indica el nombre del representante \ny del niño/a para iniciar la reserva?\"\n\nESCALAMIENTO A HUMANO\nSi piden hablar con encargado, coordinador o asesor:\n\"Claro 😊, un encargado puede ayudarle. Déjeme su nombre \ny número de contacto para que se comuniquen con usted.\"\n\nSi insiste:\n\"Un asesor humano le contactará lo antes posible.\"\n\nEJEMPLOS DE RESPUESTAS CORRECTAS\nPrecio → \"El curso tiene un valor de $70. Reservando hoy \ncon $5 accede al precio especial de $60 😊\"\n\nHorario → \"Las clases son de 8:00 am a 12:00 pm.\"\n\nUbicación → \"Durán Cárdenas, calle secundaria Mesías Carrera. \n(Redondel Huachi el Progreso).\"\n\nEdades → \"Está dirigido a niños y niñas de 3 a 12 años.\"\n\nMateriales → \"No necesitan traer nada, nosotros los \nproporcionamos.\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        448,
+        288
+      ],
+      "id": "3940930e-f726-419a-b057-8c5be76f2413",
+      "name": "AI Agent Principal",
+      "retryOnFail": true,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        624
+      ],
+      "id": "7611bfc1-e076-4679-b8a2-9c0b24d12564",
+      "name": "Gemini Principal",
+      "notesInFlow": false,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "0MgJCfSJK7ktYcyk",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook WhatsApp').item.json.body.remitente }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        544,
+        448
+      ],
+      "id": "f792325e-5bcc-49b0-b99d-269b904a9497",
+      "name": "Memoria por usuario"
+    },
+    {
+      "parameters": {
+        "jsCode": "const respuesta = $('AI Agent Principal').item.json.output;\nconst esPago = respuesta.includes('PAGO_CONFIRMADO');\n\nlet datosInscrito = null;\nif (esPago) {\n  const match = respuesta.match(/PAGO_CONFIRMADO:\\s*([^|]+)\\|([^|]+)\\|([^|]+)\\|([^\\n]+)/);\n  if (match) {\n    datosInscrito = {\n      nombreNino: match[1].trim(),\n      nombreRepresentante: match[2].trim(),\n      edad: match[3].trim(),\n      telefono: match[4].trim()\n    };\n  }\n}\n\nreturn [{ json: { respuesta, esPago, datosInscrito, remitente: $('Webhook WhatsApp').item.json.body.remitente } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        288
+      ],
+      "id": "84c35697-cfa8-4ff6-9ea5-dbe798f44687",
+      "name": "Detectar pago confirmado"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.esPago }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              },
+              "id": "8e5b9fbc-38ce-45ad-8ed8-88f33ad050e5"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        912,
+        288
+      ],
+      "id": "a35d0980-cd2a-4f16-af6a-e72f4b1e1b6c",
+      "name": "Hubo pago?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/enviar-mensaje",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "mensaje",
+              "value": "={{ $('Detectar pago confirmado').item.json.respuesta.replace('PAGO_CONFIRMADO:' + $('Detectar pago confirmado').item.json.respuesta.match(/PAGO_CONFIRMADO:[^\\n]*/)?.[0]?.replace('PAGO_CONFIRMADO:', ''), '').trim() }}"
+            },
+            {
+              "name": "remitente",
+              "value": "={{ $('Webhook WhatsApp').item.json.body.remitente }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1120,
+        288
+      ],
+      "id": "98dea2d0-2aea-4d99-8b64-2aff5a7a7b5f",
+      "name": "Enviar respuesta normal"
+    },
+    {
+      "parameters": {
+        "jsCode": "const remitente = $('Clasificar mensaje').item.json.remitente;\nconst mensajeOriginal = $('Webhook WhatsApp').item.json.body.mensaje || \"\";\nconst fecha = new Date().toLocaleDateString('es-EC', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });\n\n// 🕵️‍♂️ Intento de extracción rápida de nombres si la mamá los escribió junto al comprobante\nlet nombreNino = 'Por verificar en chat';\nlet nombreRepresentante = 'Por verificar en chat';\n\n// Si el mensaje tiene texto largo, intentamos buscar palabras clave\nconst texto = mensajeOriginal.toLowerCase();\nif (texto.includes('de ') || texto.includes('para ')) {\n  // Un intento básico de rescate de info para no dejarlo vacío si viene texto adjunto\n  nombreNino = mensajeOriginal; \n}\n\nconst contenido = `===== COMPROBANTE RECIBIDO (PRE-VALIDADO) =====\\nFecha: ${fecha}\\nWhatsApp remitente: ${remitente}\\nTexto adjunto: ${mensajeOriginal}\\n==============================================\\n\\n`;\n\nreturn [{ \n  json: { \n    contenido, \n    nombreArchivo: `comprobante_${Date.now()}.txt`, \n    datosInscrito: { \n      nombreNino: nombreNino, \n      nombreRepresentante: nombreRepresentante, \n      edad: 'Por verificar', \n      telefono: remitente \n    } \n  } \n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "831fea6f-a247-4ec9-a89d-aa503fff84e6",
+      "name": "Procesar Comprobante Directo"
+    },
+    {
+      "parameters": {
+        "chatId": "6980452640",
+        "text": "=const remitenteRaw = $('Webhook WhatsApp').item.json.body.remitente || \"\";\nconst mensaje = $('Webhook WhatsApp').item.json.body.mensaje || \"\";\nconst esComprobante = $('Webhook WhatsApp').item.json.body.esComprobante || false;\n\n// 🔥 LIMPIEZA DE TELÉFONO: Extrae solo los números antes del @ o el lid\nconst remitente = remitenteRaw.split('@')[0].split(':')[0];\n\nconst staticData = $getWorkflowStaticData('global');\n\nif (!staticData.contactosVistos) {\n  staticData.contactosVistos = {};\n}\n\nconst yaVisto = staticData.contactosVistos[remitente] === true;\n\nif (!yaVisto) {\n  staticData.contactosVistos[remitente] = true;\n}\n\nreturn [{\n  json: {\n    remitente,\n    mensaje,\n    esComprobante,\n    esPrimerMensaje: !yaVisto,\n    esSegundoMensaje: yaVisto\n  }\n}];",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1408,
+        112
+      ],
+      "id": "26627c8c-b3c1-4833-ac50-32574e86281a",
+      "name": "Alertar por Telegram",
+      "webhookId": "20b09d6e-0665-40d5-bdf7-20440b1514a6",
+      "credentials": {
+        "telegramApi": {
+          "id": "1wcgGKd0BQrcBd92",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const datos = $('Detectar pago confirmado').item.json.datosInscrito;\nconst remitente = $('Detectar pago confirmado').item.json.remitente;\nconst fecha = new Date().toLocaleDateString('es-EC', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });\n\nconst contenido = `===== INSCRIPCIÓN CDI NIKOLA TESLA =====\\nFecha: ${fecha}\\nNiño/a: ${datos?.nombreNino || 'N/D'}\\nRepresentante: ${datos?.nombreRepresentante || 'N/D'}\\nEdad: ${datos?.edad || 'N/D'}\\nTeléfono: ${datos?.telefono || 'N/D'}\\nWhatsApp remitente: ${remitente}\\nEstado: Cupo separado ($5 pagado)\\nDescuento aplicado: $15 en pago final\\n========================================\\n\\n`;\n\nreturn [{ json: { contenido, nombreArchivo: `inscrito_${Date.now()}.txt` } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        432
+      ],
+      "id": "6bd85648-3733-431d-aa71-f759d9e0145b",
+      "name": "Preparar datos TXT"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/guardar-inscrito",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "contenido",
+              "value": "={{ $json.contenido }}"
+            },
+            {
+              "name": "nombreArchivo",
+              "value": "={{ $json.nombreArchivo }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1408,
+        432
+      ],
+      "id": "241e49c3-6402-4f88-99f4-971e9618bc02",
+      "name": "Guardar en TXT"
+    },
+    {
+      "parameters": {
+        "jsCode": "const remitente = $('Webhook WhatsApp').item.json.body.remitente;\nconst fecha = new Date().toISOString();\n\nconst leadsExistentes = $getWorkflowStaticData('global').leads || {};\n\nif (!leadsExistentes[remitente]) {\n  leadsExistentes[remitente] = {\n    remitente,\n    fechaPrimerContacto: fecha,\n    diasRemarketing: 0,\n    ultimoRemarketing: null\n  };\n  $getWorkflowStaticData('global').leads = leadsExistentes;\n}\n\nreturn [{ json: { guardado: true, remitente } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        560
+      ],
+      "id": "3e371444-2c67-46e3-9012-ad2bda627013",
+      "name": "Guardar lead frio"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/enviar-mensaje",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "mensaje",
+              "value": "¡Comprobante recibido! ✨ He registrado tu pago con éxito. En breve un asesor humano validará los datos de inscripción para darles la bienvenida formal al curso vacacional. ¡Muchas gracias por tu confianza! ❤️"
+            },
+            {
+              "name": "remitente",
+              "value": "={{ $('Webhook WhatsApp').item.json.body.remitente }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        0
+      ],
+      "id": "b80cdc9a-845e-4ac1-ad35-f20248faf883",
+      "name": "Enviar mensaje éxito directo"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "gestionar-lista-negra",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -896,
+        576
+      ],
+      "id": "6a41a90f-f313-4bf8-8ad6-24c0e3a5eb60",
+      "name": "Webhook Lista Negra",
+      "webhookId": "gestionar-lista-negra"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ .body.accion }}",
+              "rightValue": "agregar",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "id": "lb-cond-001"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -640,
+        576
+      ],
+      "id": "81ebc0e3-b5f0-4c05-b938-f14e4f1754e1",
+      "name": "¿Agregar o Quitar?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/lista-negra/quitar",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "numero",
+              "value": "={{ $json.body.numero }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -400,
+        672
+      ],
+      "id": "60be55e8-4719-44a0-be71-b3dbdf53eb91",
+      "name": "Quitar de Lista Negra"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -160,
+        576
+      ],
+      "id": "52014d4d-eeec-4aa9-9472-db3f4124155d",
+      "name": "Responder confirmación"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/lista-negra/agregar",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "numero",
+              "value": "={{ $json.body.numero }}"
+            },
+            {
+              "name": "motivo",
+              "value": "={{ $json.body.motivo }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -400,
+        464
+      ],
+      "id": "1d292a76-5c67-4710-bffa-d75170f6002f",
+      "name": "Agregar a Lista Negra"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook WhatsApp": {
+      "main": [
+        []
+      ]
+    },
+    "Mostrar escribiendo": {
+      "main": [
+        [
+          {
+            "node": "Clasificar mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clasificar mensaje": {
+      "main": [
+        [
+          {
+            "node": "¿Viene un Comprobante?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Viene un Comprobante?": {
+      "main": [
+        [
+          {
+            "node": "Procesar Comprobante Directo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enviar flyer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar flyer": {
+      "main": [
+        [
+          {
+            "node": "Esperar 3s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Esperar 3s": {
+      "main": [
+        [
+          {
+            "node": "AI Agent Principal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent Principal": {
+      "main": [
+        [
+          {
+            "node": "Detectar pago confirmado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Principal": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent Principal",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memoria por usuario": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent Principal",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detectar pago confirmado": {
+      "main": [
+        [
+          {
+            "node": "Hubo pago?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hubo pago?": {
+      "main": [
+        [
+          {
+            "node": "Alertar por Telegram",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Preparar datos TXT",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enviar respuesta normal",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Guardar lead frio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Procesar Comprobante Directo": {
+      "main": [
+        [
+          {
+            "node": "Guardar en TXT",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Enviar mensaje éxito directo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar mensaje éxito directo": {
+      "main": [
+        [
+          {
+            "node": "Alertar por Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar datos TXT": {
+      "main": [
+        [
+          {
+            "node": "Guardar en TXT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Lista Negra": {
+      "main": [
+        [
+          {
+            "node": "¿Agregar o Quitar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Agregar o Quitar?": {
+      "main": [
+        [
+          {
+            "node": "Agregar a Lista Negra",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Quitar de Lista Negra",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quitar de Lista Negra": {
+      "main": [
+        [
+          {
+            "node": "Responder confirmación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agregar a Lista Negra": {
+      "main": [
+        [
+          {
+            "node": "Responder confirmación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4e5375f5-f29f-4562-832e-892b757c3953",
+  "meta": {
+    "instanceId": "85d941f6ef4e9835e69295da53541d503e157caad80ea4aa4a15b33f5b35b04e"
+  },
+  "id": "rMCrZPRDJAS0JbHG",
+  "tags": []
+}
+{
+  "name": "Growth Hacker - Prospectos Ambato",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "c37775a9-54e2-48ab-92f0-1561205768ff",
+      "name": "Inicio Manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        96,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://maps.googleapis.com/maps/api/place/textsearch/json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "restaurantes en Ambato Ecuador"
+            },
+            {
+              "name": "key",
+              "value": "TU_GOOGLE_API_KEY_AQUI"
+            },
+            {
+              "name": "language",
+              "value": "es"
+            },
+            {
+              "name": "region",
+              "value": "ec"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f96fb62f-9628-492d-a2a2-828d4f7611ea",
+      "name": "Google Places - Buscar Negocios",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        304,
+        192
+      ],
+      "notes": "Cambia 'restaurantes' por el rubro que quieras atacar. También puedes cambiar 'Ambato' por otro sector de la ciudad."
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "results",
+        "options": {}
+      },
+      "id": "78f18bc9-de57-4659-8f25-7a45ef07553a",
+      "name": "Separar Negocios",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        496,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://maps.googleapis.com/maps/api/place/details/json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "place_id",
+              "value": "={{ $json.place_id }}"
+            },
+            {
+              "name": "fields",
+              "value": "name,formatted_address,formatted_phone_number,website,rating,user_ratings_total,business_status,opening_hours,types"
+            },
+            {
+              "name": "key",
+              "value": "TU_GOOGLE_API_KEY_AQUI"
+            },
+            {
+              "name": "language",
+              "value": "es"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "034d07f6-d27e-4e9a-9d8a-519e5a5bfc2d",
+      "name": "Obtener Detalles del Negocio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        704,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json.result;\n\nif (!data) {\n  return [];\n}\n\nlet score = 0;\nconst razones = [];\nconst oportunidades = [];\n\n// CRITERIO 1: Sin sitio web (+40 puntos) — el más importante\nif (!data.website) {\n  score += 40;\n  razones.push('Sin sitio web');\n  oportunidades.push('Crear sitio web profesional');\n} else {\n  oportunidades.push('Rediseño o mejora de web existente');\n}\n\n// CRITERIO 2: Pocas reseñas (+30 puntos)\nconst totalReseñas = data.user_ratings_total || 0;\nif (totalReseñas < 10) {\n  score += 30;\n  razones.push('Menos de 10 reseñas');\n  oportunidades.push('Estrategia de reputación online');\n} else if (totalReseñas < 30) {\n  score += 15;\n  razones.push('Pocas reseñas (menos de 30)');\n  oportunidades.push('Aumentar visibilidad en Google');\n}\n\n// CRITERIO 3: Rating bajo o sin rating (+20 puntos)\nconst rating = data.rating || 0;\nif (rating === 0) {\n  score += 20;\n  razones.push('Sin puntuación en Google');\n  oportunidades.push('Activar perfil de Google Business');\n} else if (rating < 3.5) {\n  score += 20;\n  razones.push('Rating bajo (menos de 3.5)');\n  oportunidades.push('Gestión de reseñas negativas');\n} else if (rating < 4.2) {\n  score += 10;\n  razones.push('Rating mejorable');\n}\n\n// CRITERIO 4: Negocio activo pero poca presencia (+10 puntos)\nif (data.business_status === 'OPERATIONAL') {\n  score += 10;\n  oportunidades.push('Negocio activo — cliente potencial real');\n}\n\n// Nivel de oportunidad\nlet nivel = '';\nlet emoji = '';\nif (score >= 70) {\n  nivel = 'ALTA';\n  emoji = '🔴';\n} else if (score >= 40) {\n  nivel = 'MEDIA';\n  emoji = '🟡';\n} else {\n  nivel = 'BAJA';\n  emoji = '⚪';\n}\n\n// Mensaje de apertura sugerido\nlet mensajeApertura = '';\nif (!data.website) {\n  mensajeApertura = `Hola, vi su negocio \"${data.name}\" en Google Maps y noté que no tienen sitio web. Muchos de sus competidores sí tienen y están captando clientes online. ¿Tienen 10 minutos para que les muestre lo que están perdiendo?`;\n} else {\n  mensajeApertura = `Hola, analicé la presencia digital de \"${data.name}\" y encontré algunas oportunidades de mejora importantes. ¿Puedo mostrarles un diagnóstico gratuito?`;\n}\n\nreturn [{\n  json: {\n    // Datos del negocio\n    nombre: data.name || 'Sin nombre',\n    direccion: data.formatted_address || 'Sin dirección',\n    telefono: data.formatted_phone_number || '❌ No disponible',\n    web: data.website || '❌ Sin sitio web',\n    \n    // Métricas de Google\n    rating: rating || '⚠️ Sin rating',\n    total_reseñas: totalReseñas,\n    estado: data.business_status === 'OPERATIONAL' ? '✅ Activo' : '⚠️ ' + (data.business_status || 'Desconocido'),\n    \n    // Scoring de oportunidad\n    score_oportunidad: score,\n    nivel_oportunidad: `${emoji} ${nivel}`,\n    razones_score: razones.join(' | '),\n    servicios_a_ofrecer: oportunidades.join(' | '),\n    \n    // Herramienta de ventas\n    mensaje_apertura: mensajeApertura,\n    \n    // Metadata\n    lugar_id: data.place_id || '',\n    fecha_analisis: new Date().toLocaleDateString('es-EC')\n  }\n}];\n"
+      },
+      "id": "fc2f8cac-59a8-4240-941d-d81ed664708d",
+      "name": "Calcular Score de Oportunidad",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "filter-score",
+              "leftValue": "={{ $json.score_oportunidad }}",
+              "rightValue": 40,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "639add85-84fe-488f-9bd8-8b43295d49c3",
+      "name": "Filtrar Alta Oportunidad",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        192
+      ],
+      "notes": "Solo pasan negocios con score >= 40. Sube a 60 si quieres ser más selectivo."
+    },
+    {
+      "parameters": {
+        "sortFieldsUi": {
+          "sortField": [
+            {
+              "fieldName": "score_oportunidad",
+              "order": "descending"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "76eb6e81-4b10-4ca8-8287-916e21f0c8b2",
+      "name": "Ordenar por Score",
+      "type": "n8n-nodes-base.sort",
+      "typeVersion": 1,
+      "position": [
+        1296,
+        192
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "9b038788-2246-4846-b842-a9b631db859b",
+      "name": "Top 10 Prospectos",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1504,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "TU_GOOGLE_SHEET_ID_AQUI",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Prospectos Ambato",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Nombre": "={{ $json.nombre }}",
+            "Dirección": "={{ $json.direccion }}",
+            "Teléfono": "={{ $json.telefono }}",
+            "Sitio Web": "={{ $json.web }}",
+            "Rating Google": "={{ $json.rating }}",
+            "Total Reseñas": "={{ $json.total_reseñas }}",
+            "Estado": "={{ $json.estado }}",
+            "Score Oportunidad": "={{ $json.score_oportunidad }}",
+            "Nivel": "={{ $json.nivel_oportunidad }}",
+            "Razones": "={{ $json.razones_score }}",
+            "Servicios a Ofrecer": "={{ $json.servicios_a_ofrecer }}",
+            "Mensaje de Apertura": "={{ $json.mensaje_apertura }}",
+            "Fecha Análisis": "={{ $json.fecha_analisis }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Nombre",
+              "displayName": "Nombre",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Dirección",
+              "displayName": "Dirección",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Teléfono",
+              "displayName": "Teléfono",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Sitio Web",
+              "displayName": "Sitio Web",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Rating Google",
+              "displayName": "Rating Google",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Total Reseñas",
+              "displayName": "Total Reseñas",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Score Oportunidad",
+              "displayName": "Score Oportunidad",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Nivel",
+              "displayName": "Nivel",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Razones",
+              "displayName": "Razones",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Servicios a Ofrecer",
+              "displayName": "Servicios a Ofrecer",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Mensaje de Apertura",
+              "displayName": "Mensaje de Apertura",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Fecha Análisis",
+              "displayName": "Fecha Análisis",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "671a6ea7-879d-47de-9e84-2a7324d26320",
+      "name": "Guardar en Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1696,
+        192
+      ],
+      "notes": "Conecta tu cuenta de Google en las credenciales y pon el ID de tu hoja de cálculo."
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Inicio Manual": {
+      "main": [
+        [
+          {
+            "node": "Google Places - Buscar Negocios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Places - Buscar Negocios": {
+      "main": [
+        [
+          {
+            "node": "Separar Negocios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separar Negocios": {
+      "main": [
+        [
+          {
+            "node": "Obtener Detalles del Negocio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Detalles del Negocio": {
+      "main": [
+        [
+          {
+            "node": "Calcular Score de Oportunidad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular Score de Oportunidad": {
+      "main": [
+        [
+          {
+            "node": "Filtrar Alta Oportunidad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar Alta Oportunidad": {
+      "main": [
+        [
+          {
+            "node": "Ordenar por Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ordenar por Score": {
+      "main": [
+        [
+          {
+            "node": "Top 10 Prospectos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Top 10 Prospectos": {
+      "main": [
+        [
+          {
+            "node": "Guardar en Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "89937744-629f-45ba-9e8d-c64ac74cb2d0",
+  "meta": {
+    "instanceId": "85d941f6ef4e9835e69295da53541d503e157caad80ea4aa4a15b33f5b35b04e"
+  },
+  "id": "hdnAJoWaxzjEiahj",
+  "tags": []
+}const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
+const qrcode = require('qrcode-terminal');
+const axios = require('axios');
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
+
+const app = express();
+app.use(express.json());
+
+// --- CONFIGURACIÓN ---
+const N8N_WEBHOOK_URL = 'https://strangle-companion-crown.ngrok-free.dev/webhook/cdi-nikola-tesla';
+const PORT = 3000;
+
+// --- RUTAS DE ARCHIVOS PERSISTENTES ---
+const DATA_DIR = path.join(__dirname, 'data');
+const LISTA_NEGRA_PATH = path.join(DATA_DIR, 'lista-negra.json');
+const IMAGENES_ENVIADAS_PATH = path.join(DATA_DIR, 'imagenes-enviadas.json');
+
+// --- INICIALIZACIÓN DE ARCHIVOS PERSISTENTES ---
+function inicializarArchivos() {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    if (!fs.existsSync(LISTA_NEGRA_PATH)) fs.writeFileSync(LISTA_NEGRA_PATH, JSON.stringify([]), 'utf8');
+    if (!fs.existsSync(IMAGENES_ENVIADAS_PATH)) fs.writeFileSync(IMAGENES_ENVIADAS_PATH, JSON.stringify([]), 'utf8');
+    console.log('📁 Archivos de datos inicializados correctamente.');
+}
+
+// --- HELPERS: Leer y guardar listas ---
+function leerLista(rutaArchivo) {
+    try {
+        return JSON.parse(fs.readFileSync(rutaArchivo, 'utf8'));
+    } catch (e) {
+        console.error(`Error leyendo ${rutaArchivo}:`, e.message);
+        return [];
+    }
+}
+
+function guardarLista(rutaArchivo, lista) {
+    try {
+        fs.writeFileSync(rutaArchivo, JSON.stringify(lista, null, 2), 'utf8');
+    } catch (e) {
+        console.error(`Error guardando ${rutaArchivo}:`, e.message);
+    }
+}
+
+// --- HELPER: Delay humanizado (evita parecer bot) ---
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const delayHumanizado = () => delay(Math.floor(Math.random() * 2000) + 1000); // 1 a 3 segundos random
+
+// --- ENDPOINT: Lista negra - Agregar número (desde n8n) ---
+// Body esperado: { "numero": "593987654321@c.us", "motivo": "Conocido personal" }
+app.post('/lista-negra/agregar', (req, res) => {
+    const { numero, motivo } = req.body;
+    if (!numero) return res.status(400).json({ error: 'Falta el campo numero' });
+
+    const lista = leerLista(LISTA_NEGRA_PATH);
+
+    if (lista.find(item => item.numero === numero)) {
+        return res.status(200).json({ mensaje: 'El número ya estaba en la lista negra', numero });
+    }
+
+    lista.push({ numero, motivo: motivo || 'Sin motivo', fecha: new Date().toISOString() });
+    guardarLista(LISTA_NEGRA_PATH, lista);
+
+    console.log(`🚫 Número agregado a lista negra: ${numero} — ${motivo || 'Sin motivo'}`);
+    res.status(200).json({ mensaje: 'Número agregado correctamente a la lista negra', numero });
+});
+
+// --- ENDPOINT: Lista negra - Quitar número (desde n8n) ---
+// Body esperado: { "numero": "593987654321@c.us" }
+app.post('/lista-negra/quitar', (req, res) => {
+    const { numero } = req.body;
+    if (!numero) return res.status(400).json({ error: 'Falta el campo numero' });
+
+    let lista = leerLista(LISTA_NEGRA_PATH);
+    const existia = lista.find(item => item.numero === numero);
+
+    if (!existia) {
+        return res.status(200).json({ mensaje: 'El número no estaba en la lista negra', numero });
+    }
+
+    lista = lista.filter(item => item.numero !== numero);
+    guardarLista(LISTA_NEGRA_PATH, lista);
+
+    console.log(`✅ Número eliminado de lista negra: ${numero}`);
+    res.status(200).json({ mensaje: 'Número eliminado correctamente de la lista negra', numero });
+});
+
+// --- ENDPOINT: Lista negra - Consultar (desde n8n, útil para verificar) ---
+app.get('/lista-negra', (req, res) => {
+    const lista = leerLista(LISTA_NEGRA_PATH);
+    res.status(200).json({ total: lista.length, lista });
+});
+
+// --- ENDPOINT: Guardar datos de inscritos ---
+app.post('/guardar-inscrito', async (req, res) => {
+    const { contenido, nombreArchivo } = req.body;
+    const carpeta = path.join('C:/Users', process.env.USERNAME || 'Usuario', 'Bot.IA/inscritos');
+    try {
+        if (!fs.existsSync(carpeta)) fs.mkdirSync(carpeta, { recursive: true });
+        fs.appendFileSync(path.join(carpeta, nombreArchivo), contenido + '\n', 'utf8');
+        res.status(200).send('Guardado exitosamente');
+    } catch (error) {
+        res.status(500).send('Error al guardar: ' + error.message);
+    }
+});
+
+// --- ENDPOINT: Estado "Escribiendo..." ---
+app.post('/estado', async (req, res) => {
+    const { remitente } = req.body;
+    if (!remitente) return res.status(400).send('Falta remitente');
+    try {
+        const chat = await client.getChatById(remitente);
+        await chat.sendStateTyping();
+        // Limpia el estado automáticamente después de 4 segundos
+        setTimeout(async () => {
+            try { await chat.clearState(); } catch (e) {}
+        }, 4000);
+        res.status(200).send('OK');
+    } catch (e) {
+        console.error('Error en /estado:', e.message);
+        res.status(500).send(e.message);
+    }
+});
+
+// --- ENDPOINT: Enviar Imagen/Flyer ---
+// Ahora el flyer enviado se guarda en archivo, no en memoria
+app.post('/enviar-imagen', async (req, res) => {
+    const { remitente, url, caption } = req.body;
+    if (!remitente || !url) return res.status(400).send('Faltan datos');
+
+    const imagenesEnviadas = leerLista(IMAGENES_ENVIADAS_PATH);
+
+    if (imagenesEnviadas.includes(remitente)) {
+        console.log(`⚠️ Imagen omitida para ${remitente}: Ya se le envió el flyer.`);
+        return res.status(200).send('Imagen ya enviada anteriormente');
+    }
+
+    try {
+        const media = await MessageMedia.fromUrl(url);
+        await delayHumanizado();
+        await client.sendMessage(remitente, media, { caption: caption || '' });
+
+        imagenesEnviadas.push(remitente);
+        guardarLista(IMAGENES_ENVIADAS_PATH, imagenesEnviadas);
+
+        console.log(`🖼️ Flyer enviado y registrado para: ${remitente}`);
+        res.status(200).send('Imagen enviada');
+    } catch (e) {
+        console.error('Error al enviar imagen:', e.message);
+        res.status(500).send(e.message);
+    }
+});
+
+// --- ENDPOINT: Enviar Mensaje de Texto ---
+app.post('/enviar-mensaje', async (req, res) => {
+    const { remitente, mensaje } = req.body;
+    if (!remitente || !mensaje) return res.status(400).send('Faltan datos');
+
+    try {
+        await delayHumanizado();
+        await client.sendMessage(remitente, mensaje);
+        res.status(200).send('Mensaje enviado');
+    } catch (e) {
+        console.error('Error al enviar mensaje:', e.message);
+        res.status(500).send(e.message);
+    }
+});
+
+// --- CLIENTE WHATSAPP ---
+const client = new Client({
+    authStrategy: new LocalAuth(),
+    puppeteer: {
+        executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+        headless: false,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-gpu',
+            '--disable-dev-shm-usage',
+            '--no-first-run',
+            '--no-zygote'
+        ]
+    }
+});
+
+const usuariosProcesando = new Set();
+
+client.on('message', async (msg) => {
+    // Filtros básicos
+    if (msg.fromMe || msg.from.includes('@g.us') || msg.from === 'status@broadcast') return;
+    if (usuariosProcesando.has(msg.from)) return;
+
+    // --- VERIFICAR LISTA NEGRA (persiste entre reinicios) ---
+    const listaNegra = leerLista(LISTA_NEGRA_PATH);
+    if (listaNegra.find(item => item.numero === msg.from)) {
+        console.log(`🚫 Mensaje ignorado de número en lista negra: ${msg.from}`);
+        return;
+    }
+
+    usuariosProcesando.add(msg.from);
+
+    try {
+        // 🎧 GESTIÓN DE AUDIOS
+        if (msg.type === 'audio' || msg.type === 'ptt') {
+            const chat = await msg.getChat();
+            await chat.sendStateTyping();
+            await delayHumanizado();
+            await client.sendMessage(msg.from, "¡Hola papit@! 👋 En este momento nos encontramos realizando actividades con nuestros pequeños y se me hace un poquito difícil escuchar audios. 👩‍🏫✨\n\nPor favor, *escríbeme tu duda en texto* y mi sistema te atenderá al instante. ¡Muchísimas gracias por tu comprensión! ❤️");
+        }
+        // 📸 GESTIÓN DE COMPROBANTES / CAPTURAS MULTIMEDIA
+        else if (msg.hasMedia && (msg.type === 'image' || msg.type === 'document')) {
+            console.log(`📸 Archivo multimedia recibido de: ${msg.from}`);
+
+            const textoUsuario = msg.body ? msg.body.toLowerCase().trim() : '';
+            const palabrasClavePago = ['pago', 'comprobante', 'captura', 'transfe', 'listo', 'deuna', 'enviado', 'envio', 'pichincha'];
+            const incluyePalabraClave = palabrasClavePago.some(palabra => textoUsuario.includes(palabra));
+
+            let textoFinal = '';
+            let esComprobanteProbable = false;
+
+            if (textoUsuario === '' || incluyePalabraClave) {
+                textoFinal = msg.body ? msg.body : 'Ya pagué / Envié la captura de pantalla del comprobante';
+                esComprobanteProbable = true;
+                console.log(' -> Clasificado como COMPROBANTE para n8n.');
+            } else {
+                textoFinal = msg.body;
+                console.log(' -> Clasificado como IMAGEN CON CONSULTA GENERAL.');
+            }
+
+            await delayHumanizado();
+            await axios.post(N8N_WEBHOOK_URL, {
+                remitente: msg.from,
+                mensaje: textoFinal,
+                contieneImagen: true,
+                esComprobante: esComprobanteProbable
+            });
+        }
+        // 💬 GESTIÓN DE TEXTO NORMAL
+        else if (msg.body) {
+            await delayHumanizado();
+            await axios.post(N8N_WEBHOOK_URL, {
+                remitente: msg.from,
+                mensaje: msg.body,
+                contieneImagen: false,
+                esComprobante: false
+            });
+        }
+    } catch (err) {
+        console.error('Error en flujo de mensaje:', err.message);
+    } finally {
+        usuariosProcesando.delete(msg.from);
+    }
+});
+
+client.on('qr', (qr) => qrcode.generate(qr, { small: true }));
+client.on('ready', () => console.log('✅ Bot listo!'));
+client.on('disconnected', (reason) => console.log('⚠️ Bot desconectado:', reason));
+
+// --- INICIALIZACIÓN ---
+inicializarArchivos();
+console.log('🚀 Inicializando conexión con WhatsApp...');
+client.initialize();
+
+app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Servidor Express corriendo en puerto ${PORT}`));
+import requests
+import csv
+import time
+from datetime import datetime
+
+TOKEN = "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYXBwLmRyb3BpLmVjOjgwIiwiaWF0IjoxNzgyMDUwNTU4LCJleHAiOjE3ODIwOTM3NTgsIm5iZiI6MTc4MjA1MDU1OCwianRpIjoiQmxyUWFyN1dWNDdqYk9nTCIsInN1YiI6Ijk4OTcwIiwicHJ2IjoiODdlMGFmMWVmOWZkMTU4MTJmZGVjOTcxNTNhMTRlMGIwNDc1NDZhYSIsImF1ZCI6IkRST1BJIiwidG9rZW5fdHlwZSI6IkRST1BJIiwid2JfaWQiOjF9.1miJ2gnsIPgV-sgiou5n7lEP_m8stbUJVES4Ep1xBUY"
+
+HEADERS = {
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "es,es-ES;q=0.9,en;q=0.8",
+    "Content-Type": "application/json",
+    "Origin": "https://app.dropi.ec",
+    "Referer": "https://app.dropi.ec/",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-site",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0",
+    "X-Authorization": TOKEN,
+}
+
+PROVEEDORES_URL = "https://api.dropi.ec/api/users/getDataProductsSuplier"
+PRODUCTOS_URL   = "https://api.dropi.ec/api/products/v4/index"
+METRICAS_URL    = "https://api-v2.dropi.ec/indicators/supplier/{id}/metrics"
+
+def obtener_proveedores():
+    todos = {}
+    for cat_id in range(1, 11):
+        params = {
+            "type_user": "SUPPLIER",
+            "result_number": 100,
+            "start": 0,
+            "textToSearch": "",
+            "user_verified": "null",
+            "orderby": "random",
+            "category_name": "undefined",
+            "categories_id": cat_id,
+        }
+        try:
+            r = requests.get(PROVEEDORES_URL, headers=HEADERS, params=params, timeout=15)
+            if r.status_code == 200:
+                for p in r.json().get("objects", []):
+                    if p["id"] not in todos:
+                        todos[p["id"]] = p
+        except Exception as e:
+            print(f"  Error cat {cat_id}: {e}")
+        time.sleep(0.4)
+    return list(todos.values())
+
+def obtener_metricas(supplier_id):
+    try:
+        r = requests.get(
+            METRICAS_URL.format(id=supplier_id),
+            headers=HEADERS,
+            timeout=10
+        )
+        if r.status_code == 200:
+            data = r.json().get("data", {})
+            return {
+                "ordenes_mes": data.get("total_monthly_orders", ""),
+                "productos_mes": data.get("total_monthly_products", ""),
+                "dropshippers": data.get("total_monthly_dropshippers", ""),
+            }
+    except:
+        pass
+    return {"ordenes_mes": "", "productos_mes": "", "dropshippers": ""}
+
+def obtener_productos(supplier_id, supplier_name, page_size=100):
+    productos = []
+    start = 0
+    while True:
+        body = {
+            "pageSize": page_size,
+            "startData": start,
+            "supplier_id": supplier_id,
+            "privated_product": False,
+            "userVerified": False,
+            "country": "ECUADOR",
+            "favorite": False,
+            "get_stock": False,
+            "no_count": True,
+            "search_type": "simple",
+            "with_collection": True,
+        }
+        try:
+            r = requests.post(PRODUCTOS_URL, headers=HEADERS, json=body, timeout=15)
+            if r.status_code == 200:
+                items = r.json().get("objects", [])
+                if not items:
+                    break
+                productos.extend(items)
+                if len(items) < page_size:
+                    break
+                start += page_size
+                time.sleep(0.5)
+            else:
+                break
+        except Exception as e:
+            print(f"    Error productos: {e}")
+            break
+    return productos
+
+def calcular_margen(sale_price, suggested_price):
+    try:
+        s = float(sale_price)
+        p = float(suggested_price)
+        if s > 0 and p > 0:
+            ganancia = p - s
+            margen = (ganancia / p) * 100
+            return round(ganancia, 2), round(margen, 1)
+    except:
+        pass
+    return 0, 0
+
+# ── MAIN ──────────────────────────────────────────────
+fecha = datetime.now().strftime("%Y-%m-%d %H:%M")
+print(f"Dropi Ecuador — Extracción completa {fecha}")
+print("=" * 60)
+
+print("Obteniendo proveedores...")
+proveedores = obtener_proveedores()
+print(f"  {len(proveedores)} proveedores encontrados")
+
+todos_productos = []
+
+for i, prov in enumerate(proveedores, 1):
+    sid   = prov["id"]
+    sname = prov.get("store_name") or prov.get("name", f"ID-{sid}")
+    count = prov.get("products_count", 0)
+    print(f"\n[{i}/{len(proveedores)}] {sname} ({count} productos)")
+
+    # Métricas del proveedor
+    metricas = obtener_metricas(sid)
+    print(f"  Órdenes/mes: {metricas['ordenes_mes']} | Dropshippers: {metricas['dropshippers']}")
+
+    # Productos
+    productos = obtener_productos(sid, sname)
+    print(f"  {len(productos)} productos extraídos")
+
+    for p in productos:
+        try:
+            sale_price      = p.get("sale_price", 0)
+            suggested_price = p.get("suggested_price", 0)
+            ganancia, margen = calcular_margen(sale_price, suggested_price)
+
+            stock = 0
+            wh = p.get("warehouse_product", [])
+            if wh:
+                stock = sum(w.get("stock", 0) for w in wh)
+
+            categorias = ", ".join(c["name"] for c in p.get("categories", []))
+
+            todos_productos.append({
+                "fecha":             fecha,
+                "proveedor":         sname,
+                "proveedor_id":      sid,
+                "ordenes_mes":       metricas["ordenes_mes"],
+                "dropshippers":      metricas["dropshippers"],
+                "nombre":            p.get("name", ""),
+                "sku":               p.get("sku", ""),
+                "categorias":        categorias,
+                "precio_proveedor":  sale_price,
+                "precio_sugerido":   suggested_price,
+                "ganancia_usd":      ganancia,
+                "margen_pct":        f"{margen}%",
+                "stock":             stock,
+                "producto_id":       p.get("id", ""),
+            })
+        except:
+            continue
+
+    time.sleep(0.8)
+
+# Ordenar por margen descendente
+todos_productos.sort(
+    key=lambda x: float(str(x["margen_pct"]).replace("%", "") or 0),
+    reverse=True
+)
+
+archivo = f"dropi_productos_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
+campos = [
+    "fecha", "proveedor", "proveedor_id", "ordenes_mes", "dropshippers",
+    "nombre", "sku", "categorias", "precio_proveedor", "precio_sugerido",
+    "ganancia_usd", "margen_pct", "stock", "producto_id"
+]
+
+with open(archivo, "w", newline="", encoding="utf-8-sig") as f:
+    writer = csv.DictWriter(f, fieldnames=campos)
+    writer.writeheader()
+    writer.writerows(todos_productos)
+
+print("\n" + "=" * 60)
+print(f"✓ {len(todos_productos)} productos extraídos en total")
+print(f"✓ Guardado en: {archivo}")
+print()
+print("TOP 15 — mayor margen:")
+for i, p in enumerate(todos_productos[:15], 1):
+    print(f"  {i:>2}. {str(p['nombre'])[:35]:<35} | ${p['precio_sugerido']:>6} | {p['margen_pct']:>6} | Stock: {p['stock']}")
+
+import csv
+import glob
+import os
+
+# Buscar el CSV más reciente
+archivos = glob.glob("dropi_productos_*.csv")
+if not archivos:
+    print("No se encontró ningún CSV de Dropi.")
+    exit()
+
+archivo = max(archivos, key=os.path.getmtime)
+print(f"Analizando: {archivo}")
+
+PALABRAS_EXCLUIR = [
+    "flete", "envio", "envío", "prioritario", "despacho",
+    "shipping", "entrega", "fulfillment", "coordinar"
+]
+
+productos = []
+with open(archivo, encoding="utf-8-sig") as f:
+    for row in csv.DictReader(f):
+        nombre = row["nombre"].lower()
+        if any(p in nombre for p in PALABRAS_EXCLUIR):
+            continue
+        try:
+            margen = float(row["margen_pct"].replace("%", ""))
+            stock  = int(row["stock"])
+            precio = float(row["precio_sugerido"])
+        except:
+            continue
+        if margen < 30 or stock < 5 or precio < 3:
+            continue
+        productos.append({**row, "_margen": margen, "_stock": stock})
+
+productos.sort(key=lambda x: x["_margen"], reverse=True)
+
+# Guardar CSV limpio
+salida = archivo.replace("productos_", "oportunidades_")
+campos = ["nombre", "proveedor", "categorias", "precio_proveedor",
+          "precio_sugerido", "ganancia_usd", "margen_pct", "stock",
+          "ordenes_mes", "dropshippers", "producto_id"]
+
+with open(salida, "w", newline="", encoding="utf-8-sig") as f:
+    writer = csv.DictWriter(f, fieldnames=campos, extrasaction="ignore")
+    writer.writeheader()
+    writer.writerows(productos)
+
+print(f"\n✓ {len(productos)} productos reales encontrados")
+print(f"✓ Guardado en: {salida}")
+print()
+print("TOP 20 — oportunidades reales:")
+print(f"{'#':<4} {'Producto':<38} {'Precio':>7} {'Margen':>7} {'Stock':>6} {'Proveedor'}")
+print("-" * 90)
+for i, p in enumerate(productos[:20], 1):
+    print(f"{i:<4} {p['nombre'][:37]:<38} ${float(p['precio_sugerido']):>6.2f} {p['margen_pct']:>7} {int(p['_stock']):>6}  {p['proveedor'][:20]}")
+
+import asyncio
+import csv
+from playwright.async_api import async_playwright
+
+BUSQUEDA = "Pizzerías Ambato Ecuador"
+ARCHIVO_SALIDA = "leads_pizarias_ambato.csv"
+
+async def scrape_maps():
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=False)
+        page = await browser.new_page()
+
+        print("Abriendo Google Maps...")
+        await page.goto("https://www.google.com/maps", wait_until="domcontentloaded")
+        await page.wait_for_timeout(4000)
+
+        print(f"Buscando: {BUSQUEDA}")
+        try:
+            await page.wait_for_selector('input[name="q"], input#searchboxinput', timeout=15000)
+        except:
+            print("No se encontró el buscador, intentando igual...")
+
+        search_box = await page.query_selector('input[name="q"]')
+        if not search_box:
+            search_box = await page.query_selector('input#searchboxinput')
+        if not search_box:
+            search_box = await page.query_selector('input[type="text"]')
+
+        if not search_box:
+            print("ERROR: No se pudo encontrar el buscador de Maps.")
+            await browser.close()
+            return
+
+        await search_box.click()
+        await page.wait_for_timeout(1000)
+        await search_box.fill(BUSQUEDA)
+        await page.wait_for_timeout(1000)
+        await page.keyboard.press("Enter")
+        await page.wait_for_timeout(4000)
+
+        print("Haciendo scroll para cargar más resultados...")
+        for _ in range(12):
+            try:
+                panel = await page.query_selector('div[role="feed"]')
+                if panel:
+                    await panel.evaluate("el => el.scrollBy(0, 800)")
+                else:
+                    await page.evaluate("window.scrollBy(0, 800)")
+            except:
+                pass
+            await page.wait_for_timeout(1500)
+
+        print("Extrayendo negocios...")
+        resultados = await page.query_selector_all('a[href*="/maps/place/"]')
+        print(f"Encontrados: {len(resultados)} negocios")
+
+        negocios_vistos = set()
+        leads = []
+
+        for item in resultados:
+            try:
+                nombre = await item.get_attribute("aria-label")
+                href = await item.get_attribute("href")
+
+                if not nombre or not href:
+                    continue
+                if nombre in negocios_vistos:
+                    continue
+                negocios_vistos.add(nombre)
+
+                print(f"  Entrando a: {nombre}")
+                detalle = await browser.new_page()
+                await detalle.goto(href, wait_until="domcontentloaded")
+                await detalle.wait_for_timeout(3000)
+
+                # Teléfono
+                telefono = ""
+                tel_el = await detalle.query_selector('button[data-item-id^="phone"]')
+                if tel_el:
+                    telefono = await tel_el.get_attribute("aria-label") or ""
+                    telefono = telefono.replace("Teléfono:", "").strip()
+
+                # Calificación
+                calificacion = ""
+                for sel in ['div.fontDisplayLarge', 'span[aria-hidden="true"]']:
+                    cal_el = await detalle.query_selector(sel)
+                    if cal_el:
+                        txt = (await cal_el.inner_text()).strip()
+                        if txt and txt[0].isdigit():
+                            calificacion = txt
+                            break
+
+                # Número de reseñas
+                resenas = ""
+                res_el = await detalle.query_selector('button[jsaction*="pane.reviewChart"]')
+                if res_el:
+                    resenas = (await res_el.inner_text()).strip()
+
+                # Sitio web
+                sitio_web = ""
+                web_el = await detalle.query_selector('a[data-item-id="authority"]')
+                if web_el:
+                    sitio_web = await web_el.get_attribute("href") or ""
+
+                # Dirección
+                direccion = ""
+                dir_el = await detalle.query_selector('button[data-item-id="address"]')
+                if dir_el:
+                    direccion = await dir_el.get_attribute("aria-label") or ""
+                    direccion = direccion.replace("Dirección:", "").strip()
+
+                # Señal de oportunidad
+                sin_web = "SIN WEB" if not sitio_web else ""
+                try:
+                    num_resenas = int(''.join(filter(str.isdigit, resenas)))
+                except:
+                    num_resenas = 999
+                pocas_resenas = "POCAS RESEÑAS" if num_resenas < 20 else ""
+
+                oportunidad = " | ".join(filter(None, [sin_web, pocas_resenas]))
+
+                lead = {
+                    "nombre": nombre,
+                    "telefono": telefono,
+                    "calificacion": calificacion,
+                    "resenas": resenas,
+                    "sitio_web": sitio_web if sitio_web else "NO TIENE",
+                    "direccion": direccion,
+                    "oportunidad": oportunidad,
+                    "url_maps": href,
+                }
+
+                leads.append(lead)
+                print(f"    Tel: {telefono} | Cal: {calificacion} | Reseñas: {resenas} | Web: {'Sí' if sitio_web else 'NO'} | {oportunidad}")
+
+                await detalle.close()
+                await page.wait_for_timeout(500)
+
+            except Exception as e:
+                print(f"  Error: {e}")
+                continue
+
+        await browser.close()
+
+        if leads:
+            with open(ARCHIVO_SALIDA, "w", newline="", encoding="utf-8-sig") as f:
+                campos = ["nombre", "telefono", "calificacion", "resenas", "sitio_web", "direccion", "oportunidad", "url_maps"]
+                writer = csv.DictWriter(f, fieldnames=campos)
+                writer.writeheader()
+                writer.writerows(leads)
+            print(f"\n✓ Listo. {len(leads)} leads guardados en '{ARCHIVO_SALIDA}'")
+            print(f"  Abre el archivo con Excel desde tu escritorio.")
+        else:
+            print("\nNo se encontraron resultados. Intenta de nuevo.")
+
+asyncio.run(scrape_maps())
